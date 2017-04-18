@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html ng-app="admin_brand">
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="/js/jquery.js" charset="utf-8"></script>
+    <script src="/js/bootstrap.js" charset="utf-8"></script>
+    <link rel="stylesheet" href="/css/bootstrap.css">
+    <style media="screen">
+    .my-panel {position:fixed; width:400px; top:100px; left:50%; margin-left:-200px;z-index:2001;}
+
+    .my-add-panel {position:fixed; width:600px; top: 100px; left: 50%; margin-left: -300px; z-index: 2001;}
+
+    .shadow {position:fixed;left:0;top:0;width:100%;height:100%;z-index:2000;background:black;opacity:0.3;filter:alpha(opacity:30);}
+    </style>
+
+    <script src="/js/angular.js" charset="utf-8"></script>
+    <script>
+    let mod=angular.module('admin_brand', []);
+
+    mod.controller('main', function ($scope, $http){
+      //删除
+      let idToDelete=0;
+      $scope.showDelete=false;
+
+      $scope.delBrand=function (){
+        $http.get(`/delBrand?id=${idToDelete}`).then(res=>{
+          if(res.data.ok){
+            $scope.showDelete=false;
+
+            $scope.arr=$scope.arr.filter(item=>item.ID!=idToDelete);
+          }else{
+            alert('删除失败：'+res.data.msg);
+          }
+        });
+      };
+
+      $scope.showDeletePanel=function (id){
+        $scope.showDelete=true;
+
+        idToDelete=id;
+      };
+
+      //添加
+      $scope.addBrand=function (){
+        $http.get(`/addBrand?title=${$scope.brand_name}`).then(res=>{
+          let json=res.data;
+
+          if(json.ok){
+            $scope.arr.push({ID: json.ID, title: $scope.brand_name});
+
+            $scope.showAdd=false;
+            $scope.brand_name='';
+          }else{
+            alert('有问题：'+json.msg);
+          }
+        }, err=>{
+          alert('失败');
+        });
+      };
+
+      //修改
+      let idToChange=0;
+      $scope.showChangeBrand=function (id, oldTitle){
+        $scope.showChange=true;
+        $scope.brand_title=oldTitle;
+        idToChange=id;
+      };
+      $scope.changeBrand=function (){
+        $http.get(`/changeBrand?id=${idToChange}&title=${$scope.brand_title}`).then(res=>{
+          let json=res.data;
+
+          if(json.ok){
+            $scope.showChange=false;
+
+            $scope.arr.forEach(item=>{
+              if(item.ID==idToChange){
+                item.title=$scope.brand_title;
+              }
+            });
+          }else{
+            alert('修改失败：'+json.msg);
+          }
+        }, err=>{
+          alert('修改失败');
+        });
+      };
+
+      //获取
+      $http.get('/getBrands').then(res=>{
+        $scope.arr=res.data;
+      }, err=>{
+        alert('失败了');
+      });
+    });
+    </script>
+  </head>
+  <body ng-controller="main">
+    <table class="table" ng-cloak>
+      <thead>
+        <tr>
+          <th width="10%">ID</th>
+          <th width="70%">名字</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr ng-repeat="json in arr">
+          <td>{{json.ID}}</td>
+          <td>{{json.title}}</td>
+          <td>
+            <a href="javascript:;" ng-click="showChangeBrand(json.ID, json.title)">修改</a>
+            <a href="javascript:;" ng-click="showDeletePanel(json.ID)">删除</a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <input type="button" value="添加" class="btn btn-primary" ng-click="showAdd=true">
+
+    <!--删除-->
+    <div ng-cloak class="shadow" ng-show="showDelete"></div>
+    <div ng-cloak class="panel panel-primary my-panel" ng-show="showDelete">
+      <div class="panel-heading">
+        删除确认
+      </div>
+      <div class="panel-body">
+        是否要删除此项数据，删除后不可恢复
+      </div>
+      <div class="panel-footer">
+        <input type="button" class="btn btn-danger" value="确定" ng-click="delBrand();">
+        <input type="button" class="btn btn-default" value="取消" ng-click="showDelete=false">
+      </div>
+    </div>
+    <!--end of 删除-->
+
+    <!--添加-->
+    <div ng-cloak class="shadow" ng-show="showAdd"></div>
+    <div ng-cloak class="panel panel-primary my-add-panel" ng-show="showAdd">
+      <div class="panel-heading">
+        添加品牌
+      </div>
+      <div class="panel-body">
+        <form class="form-horizontal">
+          <div class="form-group">
+            <label for="add_brand" class="control-label col-sm-2">品牌名</label>
+            <div class="col-sm-10">
+              <input id="add_brand" type="text" class="form-control" ng-model="brand_name">
+            </div>
+          </div>
+          <div class="class-group">
+            <button class="btn btn-primary" ng-click="addBrand()">添加</button>
+            <button class="btn btn-default" ng-click="showAdd=false;brand_name='';">取消</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <!--end of 添加-->
+
+    <!--修改-->
+    <div ng-cloak class="shadow" ng-show="showChange"></div>
+    <div ng-cloak class="panel panel-primary my-add-panel" ng-show="showChange">
+      <div class="panel-heading">
+        修改品牌
+      </div>
+      <div class="panel-body">
+        <form class="form-horizontal">
+          <div class="form-group">
+            <label for="change_brand" class="control-label col-sm-2">品牌名</label>
+            <div class="col-sm-10">
+              <input id="change_brand" type="text" class="form-control" ng-model="brand_title">
+            </div>
+          </div>
+          <div class="class-group">
+            <button class="btn btn-primary" ng-click="changeBrand()">修改</button>
+            <button class="btn btn-default" ng-click="showChange=false;">取消</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <!--end of 修改-->
+  </body>
+</html>
